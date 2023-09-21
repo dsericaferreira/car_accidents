@@ -1,3 +1,4 @@
+import joblib
 import streamlit as st
 import pandas as pd
 import os
@@ -24,22 +25,24 @@ st.markdown(
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv('preprocess_data.csv', sep=',',
-                     encoding='latin1', header=0)
-    df = df.reset_index()
-    df['br'] = df['br'].str.replace(".0", "")
-    for column in df.columns:
-        if df[column].dtype == 'O':
-            df[column] = df[column].str.lower()
-            df[column] = df[column].replace(
-                '(null)', 'unknown').replace('0', 'unknown')
-            df[column] = df[column].str.encode(
-                'ISO-8859-1').str.decode('utf-8', 'ignore')
-            df[column] = df[column].fillna('unknown')
-        else:
-            df[column] = df[column].fillna(-99999999)
-    df["data_inversa"] = pd.to_datetime(df["data_inversa"])
-    df['horario'] = pd.to_datetime(df['horario'], format='%H:%M:%S').dt.time
+    # df = pd.read_csv('preprocess_data.csv', sep=',',
+    #                  encoding='latin1', header=0)
+
+    df = joblib.load('data_dashboard.pkl')
+    # df = df.reset_index()
+    # df['br'] = df['br'].str.replace(".0", "")
+    # for column in df.columns:
+    #     if df[column].dtype == 'O':
+    #         df[column] = df[column].str.lower()
+    #         df[column] = df[column].replace(
+    #             '(null)', 'unknown').replace('0', 'unknown')
+    #         df[column] = df[column].str.encode(
+    #             'ISO-8859-1').str.decode('utf-8', 'ignore')
+    #         df[column] = df[column].fillna('unknown')
+    #     else:
+    #         df[column] = df[column].fillna(-99999999)
+    # df["data_inversa"] = pd.to_datetime(df["data_inversa"])
+    # df['horario'] = pd.to_datetime(df['horario'], format='%H:%M:%S').dt.time
     return df
 
 

@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 tf.config.run_functions_eagerly(True)
 
+
 # Load your model
 model = joblib.load('mlp_model.pkl')
 model_red = joblib.load('mlp_model_features_reduced.pkl')
@@ -49,18 +50,19 @@ with col1:
 
     with st.form("accident_prediction_form"):
         # BR (Number stored as string)
-        br = st.text_input('BR (Number)', '')
+        br = st.text_input('Highway (Number)', '')
 
         # Tipo Acidente (Multiselect)
-        tipo_acidente = st.multiselect('Tipo Acidente', tipo_acidente_options)
+        tipo_acidente = st.multiselect(
+            'Accident Type', sorted(tipo_acidente_options))
         tipo_acidente = tipo_acidente[0] if tipo_acidente else None
 
         # Uso Solo (Multiselect)
-        fase_dia = st.multiselect('Uso Solo', fase_dia_options)
+        fase_dia = st.multiselect('Time of Day', sorted(fase_dia_options))
         fase_dia = fase_dia[0] if fase_dia else None
 
         # State (Multiselect)
-        state = st.multiselect('State', state_options)
+        state = st.multiselect('State', sorted(state_options))
         regional = "SPRF-" + "-".join(state) if state else None
 
         # # Classificação do Acidente (Multiselect)
@@ -69,7 +71,7 @@ with col1:
         # classificacao_acidente = classificacao_acidente[0] if classificacao_acidente else None
 
         # Ano (Integer)
-        ano = st.number_input('Ano', min_value=2000)
+        ano = st.number_input('Year', min_value=2000)
 
         # Submit button
         submitted = st.form_submit_button("Predict")
@@ -141,12 +143,12 @@ with col2:
                 unsafe_allow_html=True)
 
     with st.form("accident_prediction_form+red"):
-        br = st.text_input('BR (Number)', '')
+        br = st.text_input('Highway (Number)', '')
 
         state = st.multiselect('State', state_options)
         regional = "SPRF-" + "-".join(state) if state else None
 
-        ano = st.number_input('Ano', min_value=2000)
+        ano = st.number_input('Year', min_value=2000)
 
         submitted = st.form_submit_button("Predict")
 
