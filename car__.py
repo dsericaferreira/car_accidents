@@ -27,10 +27,17 @@ def load_data():
     df = pd.read_csv('preprocess_data.csv', sep=',',
                      encoding='latin1', header=0)
     df = df.reset_index()
-    for column in df:
+    df['br'] = df['br'].str.replace(".0", "")
+    for column in df.columns:
         if df[column].dtype == 'O':
-            df[column] = df[column].str.replace('(null)', 'Unknown').str.encode(
-                'latin1').str.decode('utf-8', 'ignore')
+            df[column] = df[column].str.lower()
+            df[column] = df[column].replace(
+                '(null)', 'unknown').replace('0', 'unknown')
+            df[column] = df[column].str.encode(
+                'ISO-8859-1').str.decode('utf-8', 'ignore')
+            df[column] = df[column].fillna('unknown')
+        else:
+            df[column] = df[column].fillna(-99999999)
     df["data_inversa"] = pd.to_datetime(df["data_inversa"])
     df['horario'] = pd.to_datetime(df['horario'], format='%H:%M:%S').dt.time
     return df
@@ -60,24 +67,28 @@ df = df[(df['horario'] >= start_time) & (df['horario'] <= end_time)]
 st.sidebar.header("Filters: ")
 
 dia_semana = st.sidebar.multiselect(
-    "Day of the week: ", df["dia_semana"].unique())
+    "Day of the week: ", df["dia_semana"].unique()
+)
 if dia_semana:
     df = df[df["dia_semana"].isin(dia_semana)]
 
-uf = st.sidebar.multiselect("State (UF): ", df["uf"].unique())
+uf_list = df["uf"].str.upper()
+uf = st.sidebar.multiselect("State (UF): ", sorted(uf_list.unique()))
 if uf:
     df = df[df["uf"].isin(uf)]
 
-municipio = st.sidebar.multiselect("City: ", df["municipio"].unique())
+municipio = st.sidebar.multiselect(
+    "City: ", sorted(df["municipio"].unique()))
 if municipio:
     df = df[df["municipio"].isin(municipio)]
 
-fase_dia = st.sidebar.multiselect("Time of Day: ", df["fase_dia"].unique())
+fase_dia = st.sidebar.multiselect(
+    "Time of Day: ", sorted(df["fase_dia"].unique()))
 if fase_dia:
     df = df[df["fase_dia"].isin(fase_dia)]
 
 condicao_metereologica = st.sidebar.multiselect(
-    "Weather: ", df["condicao_metereologica"].unique())
+    "Weather: ", sorted(df["condicao_metereologica"].unique()))
 if condicao_metereologica:
     df = df[df["condicao_metereologica"].isin(condicao_metereologica)]
 
@@ -175,27 +186,30 @@ st.markdown("<style>color: skyblue; text-align: center; font-size: 10px;</style>
             unsafe_allow_html=True)
 
 accidents_per_state_sorted = accidents_per_state.sort_values('Accidents')
-
-bar_chart = alt.Chart(accidents_per_state_sorted).mark_bar().encode(
+accidents_per_state_sorted['State'] = accidents_per_state_sorted['State'].str.upper(
+)
+bar_chart = alt.Chart(accidents_per_state_sorted).mark_bar(color='#6a0dad').encode(
     y=alt.Y('Accidents:Q', title=None),
     x=alt.X('State:N', title=None, sort='-y'),
     tooltip=['State:N', 'Accidents:Q']
 )
 bar_chart = bar_chart.configure_axis(
-    grid=False  # Set grid to False to remove grid lines
+    grid=False
 )
-
-# Show the bar chart using Streamlit
 st.altair_chart(bar_chart, use_container_width=True)
 
 
-st.subheader("Top 20 Cities with the Highest Number of Accidents")
+st.subheader("Top 20 Cities")
 st.markdown("<style>color: skyblue; text-align: center; font-size: 10px;</style>",
             unsafe_allow_html=True)
+st.write("Number of Accidents")
+# st.markdown("<style>color: skyblue; text-align: center; font-size: 8px;</style>",
+#             unsafe_allow_html=True)
 
 accidents_per_city_sorted = accidents_per_city.sort_values('Accidents')
-
-city_chart = alt.Chart(accidents_per_city_sorted).mark_bar().encode(
+accidents_per_city_sorted['City'] = accidents_per_city_sorted['City'].str.upper(
+)
+city_chart = alt.Chart(accidents_per_city_sorted).mark_bar(color='#590085').encode(
     y=alt.Y('Accidents:Q', title=None),
     # Set labelAngle to tilt the labels
     x=alt.X('City:N', title=None, sort='-y',
@@ -204,9 +218,9 @@ city_chart = alt.Chart(accidents_per_city_sorted).mark_bar().encode(
 )
 
 city_chart = city_chart.configure_axis(
-    grid=False  # Set grid to False to remove grid lines
+    grid=False
 )
-# Show the bar chart using Streamlit
+
 st.altair_chart(city_chart, use_container_width=True)
 
 st.subheader(":partly_sunny_rain: Weather Impact :partly_sunny_rain:")
@@ -262,47 +276,35 @@ with chart3:
         height=400
     )
 
-    # Add regression line as dots
     regression_dots = line_chart.transform_regression(
         'Year', 'Accidents', method='poly', order=1
     ).mark_point(color='red', filled=True)
 
-    # Combine the two charts
     combined_chart = (
         line_chart + regression_dots).configure_legend(orient="bottom")
 
-    # Configure axis to remove grids
     combined_chart = combined_chart.configure_axis(
         grid=False  # Remove as linhas de grade
     )
-    # Show the combined chart
     st.altair_chart(combined_chart, use_container_width=True)
 
-# with chart4:
-
-# st.write(top_tipos_acidentes)
 
 with chart4:
-    # Group by day of the week and count accidents
     st.subheader("Accidents per Week Day")
     st.markdown("<style>color: skyblue; text-align: center; font-size: 16px;</style>",
                 unsafe_allow_html=True)
     acidentes_por_dia = df['dia_semana'].value_counts().reset_index()
     acidentes_por_dia.columns = ['day_of_week', 'Accidents']
 
-    # Define the custom sorting order for the days of the week
     custom_sort_order = ['monday', 'tuesday', 'wednesday',
                          'thursday', 'friday', 'saturday', 'sunday']
 
-    # Convert 'day_of_week' to categorical with the custom sort order
     acidentes_por_dia['day_of_week'] = pd.Categorical(
         acidentes_por_dia['day_of_week'], categories=custom_sort_order, ordered=True)
 
-    # Sort the DataFrame by the custom order
     acidentes_por_dia = acidentes_por_dia.sort_values('day_of_week')
-
-    # Create the bar chart with explicit encoding for sorting
-    bar_chart = alt.Chart(acidentes_por_dia).mark_bar().encode(
+    acidentes_por_dia['day_of_week'] = acidentes_por_dia['day_of_week'].str.upper()
+    bar_chart = alt.Chart(acidentes_por_dia).mark_bar(color='#00008B').encode(
         x=alt.X('day_of_week:N', title=None,
                 sort=custom_sort_order),  # Explicitly set the sorting order
         y=alt.Y('Accidents:Q', title=None),
@@ -312,11 +314,8 @@ with chart4:
         height=400
     )
 
-    bar_chart = bar_chart.configure_axis(
-        grid=False  # Set grid to False to remove grid lines
-    )
+    bar_chart = bar_chart.configure_axis(grid=False)
 
-    # Show the bar chart
     st.altair_chart(bar_chart, use_container_width=True)
 
 st.divider()
@@ -403,3 +402,22 @@ map_ = pdk.Deck(
 )
 
 st.pydeck_chart(map_)
+
+st.divider()
+
+
+st.subheader(f"""Érica ferreira""")
+st.markdown("<style>color: skyblue; text-align: center; font-size: 5px;</style>",
+            unsafe_allow_html=True)
+
+
+st.subheader(f"""Data Scientist""")
+st.markdown("<style>color: skyblue; text-align: center; font-size: 5px;</style>",
+            unsafe_allow_html=True)
+
+st.write(
+    "[My github](https://github.com/dsericaferreira)")
+
+
+st.write(
+    "[My Linkedin](https://www.linkedin.com/in/ericacarneiro-ds/)")

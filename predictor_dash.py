@@ -9,9 +9,13 @@ tf.config.run_functions_eagerly(True)
 # Load your model
 model = joblib.load('mlp_model.pkl')
 model_red = joblib.load('mlp_model_features_reduced.pkl')
+# ['uf', 'tipo_acidente', 'fase_dia', 'regional', 'ano']
 
-# Define options for multiselects
-# Replace with your actual options
+st.title(":blue_car: Car Accidents in Brazil :car:")
+st.subheader("Predictor")
+st.markdown(
+    '<style>div.block-container{padding-top:1rem;text-align:center;}</style>', unsafe_allow_html=True)
+
 tipo_acidente_options = ['Sada de leito carrovel', 'Atropelamento de Pedestre',
                          'Tombamento', 'Coliso frontal', 'Coliso transversal', 'Incndio',
                          'Coliso lateral mesmo sentido', 'Coliso traseira', 'Engavetamento',
@@ -26,7 +30,7 @@ tipo_acidente_options = ['Sada de leito carrovel', 'Atropelamento de Pedestre',
                          'Coliso com objeto mvel', 'Atropelamento de animal',
                          'Derramamento de Carga', 'Danos Eventuais']
 
-uso_solo_options = ['Urbano', 'Rural', 'Unknown']
+fase_dia_options = ['full night', 'full day', 'dusk', 'dawn', 'unknown']
 state_options = ['ES', 'SP', 'MT', 'PR', 'MG', 'BA', 'RJ', 'RS', 'SC', 'PI', 'GO',
                  'PE', 'PA', 'MS', 'MA', 'CE', 'AP', 'PB', 'SE', 'RO', 'RN', 'TO',
                  'RR', 'DF', 'AL', 'AC', 'AM', 'Unknown']
@@ -37,9 +41,9 @@ classificacao_acidente_options = [
 
 col1, col2 = st.columns(2)
 
+
 with col1:
-    # Define a form layout
-    st.subheader("Predict # of Accidents based on: ")
+    st.subheader("Features 1")
     st.markdown("<style>color: skyblue; text-align: center; font-size: 10px;</style>",
                 unsafe_allow_html=True)
 
@@ -52,17 +56,17 @@ with col1:
         tipo_acidente = tipo_acidente[0] if tipo_acidente else None
 
         # Uso Solo (Multiselect)
-        uso_solo = st.multiselect('Uso Solo', uso_solo_options)
-        uso_solo = uso_solo[0] if uso_solo else None
+        fase_dia = st.multiselect('Uso Solo', fase_dia_options)
+        fase_dia = fase_dia[0] if fase_dia else None
 
         # State (Multiselect)
         state = st.multiselect('State', state_options)
         regional = "SPRF-" + "-".join(state) if state else None
 
-        # Classificação do Acidente (Multiselect)
-        classificacao_acidente = st.multiselect(
-            'Classificação do Acidente', classificacao_acidente_options)
-        classificacao_acidente = classificacao_acidente[0] if classificacao_acidente else None
+        # # Classificação do Acidente (Multiselect)
+        # classificacao_acidente = st.multiselect(
+        #     'Classificação do Acidente', classificacao_acidente_options)
+        # classificacao_acidente = classificacao_acidente[0] if classificacao_acidente else None
 
         # Ano (Integer)
         ano = st.number_input('Ano', min_value=2000)
@@ -70,14 +74,11 @@ with col1:
         # Submit button
         submitted = st.form_submit_button("Predict")
 
-    # Button to trigger prediction
     if submitted:
-        # Make a prediction using your model
         input_data = {'br': br,
                       'tipo_acidente': tipo_acidente,
-                      'uso_solo': uso_solo,
+                      'fase_dia': fase_dia,
                       'regional': regional,
-                      'classificacao_acidente': classificacao_acidente,
                       'ano': ano}
 
         data_pre = joblib.load('colunas')
@@ -91,8 +92,6 @@ with col1:
 
         input_df['ano'] = float(scaled_ano[len(anos)-1])
 
-        st.write(f'Predicted Output: {input_df["ano"]}')
-
         for column in input_df.columns:
             if input_df[column].dtype == 'O':
                 input_df[column] = input_df[column].str.lower()
@@ -103,13 +102,11 @@ with col1:
             else:
                 input_df[column] = input_df[column].fillna(-99999999)
 
-        st.write(f'Df Output: {input_df}')
         valores = list()
         for i in input_df.columns:
             if i != 'ano':
                 valores.append(input_df[i].iloc[0])
 
-        st.write(f'Valores: {valores}')
         nova_linha = pd.DataFrame(
             [[0]*len(data_pre.columns)], columns=data_pre.columns)
 
@@ -120,16 +117,6 @@ with col1:
                 if valor in i:
                     data_pre[i].iloc[0] = 1
 
-        # input_df = pd.get_dummies(input_df, columns=['br', 'tipo_acidente', 'classificacao_acidente',
-        #                                              'uso_solo', 'regional'], drop_first=True)
-        # st.write(f'Df Output: {input_df}')
-
-        # for i in input_df.columns:
-        #     if i != 'ano':
-        #         input_df[i] = [0 if x == False else 1 for x in input_df[i]]
-
-        st.write(f'Df Output: {data_pre}')
-
         # data_pre = pd.DataFrame(columns=data_pre.columns)
         for i in data_pre.columns:
             if i in input_df.columns and i != 'ano':
@@ -139,44 +126,31 @@ with col1:
 
         data_pre['ano'] = input_df['ano']
 
-        # model.compile(optimizer='adam',
-        # loss='mean_squared_error')
-
         prediction = model.predict(data_pre)
 
-        sensitivity = 0.2
-        denormalized_value = (prediction * (2508 - 1) * sensitivity) + 1
+        denormalized_value = (prediction * (4681 - 1)) + 1
 
-        # denormalized_value = (
-        #     prediction * (250 - 9)) + 9
-
-        # Display the prediction
-        st.write(f'Predicted Output: {denormalized_value}')
-
+        st.subheader(f"""{round(denormalized_value[0][0], 0)} accidents""")
+        st.markdown("<style>color: skyblue; text-align: center; font-size: 10px;</style>",
+                    unsafe_allow_html=True)
 
 with col2:
 
-    st.subheader("Predict # of Accidents based on: ")
+    st.subheader("Features 2")
     st.markdown("<style>color: skyblue; text-align: center; font-size: 10px;</style>",
                 unsafe_allow_html=True)
 
     with st.form("accident_prediction_form+red"):
-        # BR (Number stored as string)
         br = st.text_input('BR (Number)', '')
 
-        # State (Multiselect)
         state = st.multiselect('State', state_options)
         regional = "SPRF-" + "-".join(state) if state else None
 
-        # Ano (Integer)
         ano = st.number_input('Ano', min_value=2000)
 
-        # Submit button
         submitted = st.form_submit_button("Predict")
-     # Button to trigger prediction
 
     if submitted:
-        # Make a prediction using your model
         input_data_ = {'br': br,
                        'regional': regional,
                        'ano': ano}
@@ -207,7 +181,6 @@ with col2:
             if i != 'ano':
                 valores.append(input_red[i].iloc[0])
 
-        st.write(f'Valores: {valores}')
         nova_linha = pd.DataFrame(
             [[0]*len(data_red.columns)], columns=data_red.columns)
 
@@ -218,17 +191,6 @@ with col2:
                 if valor in i:
                     data_red[i].iloc[0] = 1
 
-        # input_red = pd.get_dummies(input_red, columns=['br', 'tipo_acidente', 'classificacao_acidente',
-        #                                              'uso_solo', 'regional'], drop_first=True)
-        # st.write(f'Df Output: {input_red}')
-
-        # for i in input_red.columns:
-        #     if i != 'ano':
-        #         input_red[i] = [0 if x == False else 1 for x in input_red[i]]
-
-        st.write(f'Df Output: {data_red}')
-
-        # data_red = pd.DataFrame(columns=data_red.columns)
         for i in data_red.columns:
             if i in input_red.columns and i != 'ano':
                 data_red[i] = 1
@@ -242,11 +204,26 @@ with col2:
 
         prediction = model_red.predict(data_red)
 
-        sensitivity = 0.2
-        # denormalized_value = (prediction * (192326 - 1) * sensitivity) + 1
+        sensitivity = 0.5
+        denormalized_value_ = (prediction * (192326 - 1) * sensitivity) + 1
 
-        denormalized_value = (
-            prediction * (192326 - 1)) + 1
+        st.subheader(f"""{round(denormalized_value_[0][0], 0)} accidents""")
+        st.markdown("<style>color: skyblue; text-align: center; font-size: 10px;</style>",
+                    unsafe_allow_html=True)
 
-        # Display the prediction
-        st.write(f'Predicted Output: {prediction}')
+st.divider()
+
+
+st.subheader(f"""Érica ferreira""")
+st.markdown("<style>color: skyblue; text-align: center; font-size: 5px;</style>",
+            unsafe_allow_html=True)
+st.subheader(f"""Data Scientist""")
+st.markdown("<style>color: skyblue; text-align: center; font-size: 5px;</style>",
+            unsafe_allow_html=True)
+
+st.write(
+    "[My github](https://github.com/dsericaferreira)")
+
+
+st.write(
+    "[My Linkedin](https://www.linkedin.com/in/ericacarneiro-ds/)")
