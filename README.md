@@ -22,8 +22,7 @@ We also have:
 --- A notebook of data exploration: It's a draft and It's pretty messy. : )
 --- A notebook with some statistical inferences: inferences.ipynb.
 --- Files with our dummy datasets structure (columns): colunas and colunas_reduzidas.
---- The processed data (combination of dataset from 2007 to 2023) is (as csv) in a zip file, but also in a pickle (data_dashboard_pkl)
---- The dependencies: requirements.txt
+--- The processed data (combination of dataset from 2007 to 2023) is (as csv) in a zip file, please decompress It before using.
 --- Our streamlit pages: predictor_dash.py and dashboard_car_accident.py
 
     Hope you enjoy!!
